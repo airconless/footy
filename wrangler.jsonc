@@ -17,9 +17,19 @@
 	"kv_namespaces": [
 		{
 			"binding": "footykv",
-			"id": "b33cb47c1f344bd88d54fd4461e1ec95"
+			"id": "b33cb47c1f344bd88d54fd4461e1ec95",
+			"preview_id": "b33cb47c1f344bd88d54fd4461e1ec95"
 		}
 	],
+	
+	"d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "footy-wtf",
+      "database_id": "7c215416-ad77-4ede-a978-500d7c27cff8",
+	  "migrations_dir": "db/drizzle-out"
+    }
+  ],
 	"triggers": {
 		"crons": [
 			"* * * * *"

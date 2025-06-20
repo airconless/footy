@@ -1,6 +1,147 @@
 <template>
-    <div>
-      <p>Some default layout content shared across all pages</p>
+  <div class="min-h-screen" :class="{ 'dark': isDark }">
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <!-- Logo/Brand -->
+          <div class="flex-shrink-0">
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+              Footy WTF
+            </h1>
+          </div>
+
+          <!-- Navigation -->
+          <nav class="hidden md:flex space-x-8">
+            <NuxtLink 
+              to="/" 
+              class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              active-class="text-blue-600 dark:text-blue-400"
+            >
+              Home
+            </NuxtLink>
+            <NuxtLink 
+              to="/games" 
+              class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              active-class="text-blue-600 dark:text-blue-400"
+            >
+              Games
+            </NuxtLink>
+          </nav>
+
+          <!-- Dark Mode Toggle -->
+          <div class="flex items-center space-x-4">
+            <button
+              @click="toggleDarkMode"
+              class="p-2 rounded-md text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              <svg v-if="isDark" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+              </svg>
+              <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+              </svg>
+            </button>
+
+            <!-- Mobile menu button -->
+            <button
+              @click="toggleMobileMenu"
+              class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle mobile menu"
+            >
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile Navigation -->
+        <div v-show="showMobileMenu" class="md:hidden border-t border-gray-200 dark:border-gray-700 pt-4 pb-4">
+          <div class="space-y-1">
+            <NuxtLink 
+              to="/" 
+              @click="closeMobileMenu"
+              class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              active-class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+            >
+              Home
+            </NuxtLink>
+            <NuxtLink 
+              to="/games" 
+              @click="closeMobileMenu"
+              class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              active-class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+            >
+              Games
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="bg-gray-50 dark:bg-gray-900 min-h-[calc(100vh-4rem)] transition-colors">
       <slot />
-    </div>
-  </template>
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+const isDark = ref(false)
+const showMobileMenu = ref(false)
+
+// Initialize dark mode from localStorage or system preference
+onMounted(() => {
+  const stored = localStorage.getItem('darkMode')
+  if (stored) {
+    isDark.value = stored === 'true'
+  } else {
+    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+  
+  // Apply dark class to html element for Tailwind
+  if (isDark.value) {
+    document.documentElement.classList.add('dark')
+  }
+})
+
+const toggleDarkMode = () => {
+  isDark.value = !isDark.value
+  localStorage.setItem('darkMode', isDark.value.toString())
+  
+  if (isDark.value) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+}
+
+const toggleMobileMenu = () => {
+  showMobileMenu.value = !showMobileMenu.value
+}
+
+const closeMobileMenu = () => {
+  showMobileMenu.value = false
+}
+
+// Close mobile menu when clicking outside
+onMounted(() => {
+  const handleClickOutside = (event: Event) => {
+    const target = event.target as Element
+    if (!target.closest('header') && showMobileMenu.value) {
+      showMobileMenu.value = false
+    }
+  }
+  
+  document.addEventListener('click', handleClickOutside)
+  
+  onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside)
+  })
+})
+</script>
+
+<style scoped>
+/* Additional custom styles if needed */
+</style>

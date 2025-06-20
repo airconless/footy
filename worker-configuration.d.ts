@@ -5,6 +5,7 @@ declare namespace Cloudflare {
 	interface Env {
 		footykv: KVNamespace;
 		ASSETS: Fetcher;
+		DB: D1Database;
 	}
 }
 interface Env extends Cloudflare.Env {}
