@@ -5,27 +5,33 @@
         <div class="flex justify-between items-center h-16">
           <!-- Logo/Brand -->
           <div class="flex-shrink-0">
-            <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-              Footy WTF
-            </h1>
+            <NuxtLink 
+              to="/" 
+              class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-lg font-medium transition-colors"
+              active-class="text-blue-600 dark:text-blue-400"
+            >
+             Footy 🏈 WTF
+            </NuxtLink>
           </div>
 
           <!-- Navigation -->
-          <nav class="hidden md:flex space-x-8">
-            <NuxtLink 
-              to="/" 
-              class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              active-class="text-blue-600 dark:text-blue-400"
+          <nav class="hidden md:flex space-x-8 items-center">
+
+            
+            <!-- Rounds Dropdown -->
+            <UDropdownMenu 
+              v-model:open="roundsDropdownOpen" 
+              :items="roundMenuItems" 
+              :ui="{ content: 'w-64' }"
             >
-              Home
-            </NuxtLink>
-            <NuxtLink 
-              to="/games" 
-              class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              active-class="text-blue-600 dark:text-blue-400"
-            >
-              Games
-            </NuxtLink>
+              <UButton 
+                label="Select Round" 
+                color="neutral" 
+                variant="outline" 
+                icon="i-lucide-calendar"
+                :loading="roundsLoading"
+              />
+            </UDropdownMenu>
           </nav>
 
           <!-- Dark Mode Toggle -->
@@ -67,14 +73,24 @@
             >
               Home
             </NuxtLink>
-            <NuxtLink 
-              to="/games" 
-              @click="closeMobileMenu"
-              class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              active-class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-            >
-              Games
-            </NuxtLink>
+            
+            <!-- Mobile Rounds Dropdown -->
+            <div class="px-3 py-2">
+              <UDropdownMenu 
+                v-model:open="mobileRoundsDropdownOpen" 
+                :items="roundMenuItems" 
+                :ui="{ content: 'w-full' }"
+              >
+                <UButton 
+                  label="Select Round" 
+                  color="neutral" 
+                  variant="outline" 
+                  icon="i-lucide-calendar"
+                  :loading="roundsLoading"
+                  class="w-full"
+                />
+              </UDropdownMenu> 
+            </div>
           </div>
         </div>
       </div>
@@ -88,8 +104,56 @@
 </template>
 
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
+interface RoundOption {
+  value: string;
+  label: string;
+  round: number;
+  roundname: string;
+  year: number;
+}
+
+interface RoundsResponse {
+  success: boolean;
+  rounds: RoundOption[];
+}
+
 const isDark = ref(false)
 const showMobileMenu = ref(false)
+const roundsDropdownOpen = ref(false)
+const mobileRoundsDropdownOpen = ref(false)
+
+// Fetch rounds data
+const { data: roundsData, pending: roundsLoading } = await useFetch<RoundsResponse>('/api/afl/rounds', {
+  server: false,
+  default: () => ({ success: false, rounds: [] } as RoundsResponse)
+})
+
+// Convert rounds data to dropdown menu format
+const roundMenuItems = computed(() => {
+  if (!roundsData.value?.rounds?.length) {
+    return [{
+      label: 'No rounds available',
+      disabled: true
+    }] satisfies DropdownMenuItem[]
+  }
+  
+  return roundsData.value.rounds.map(round => ({
+    label: round.label,
+    icon: 'i-lucide-calendar',
+    onSelect: () => navigateToRound(round.value)
+  })) satisfies DropdownMenuItem[]
+})
+
+// Navigation function
+const navigateToRound = (roundValue: string) => {
+  if (roundValue) {
+    navigateTo(`/rounds/${roundValue}`)
+    roundsDropdownOpen.value = false
+    mobileRoundsDropdownOpen.value = false
+  }
+}
 
 // Initialize dark mode from localStorage or system preference
 onMounted(() => {

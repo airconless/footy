@@ -254,7 +254,6 @@ function getRowClass(player: Player) {
 <template>
   <div class="flex flex-col flex-1 w-full mb-8">
     <div class="flex justify-between items-center px-4 py-3.5 border-b border-accented">
-      <h2 class="text-lg font-semibold">Home Team</h2>
       <UDropdownMenu
         :items="
           table?.tableApi

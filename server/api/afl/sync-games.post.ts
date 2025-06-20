@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
     // Fetch data from Squiggle API
     const response = await $fetch<SquiggleResponse>('https://api.squiggle.com.au/?q=games;year=2025', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; AFL-App/1.0)',
+        'User-Agent': 'wtf Footy App - sellerassistantio@gmail.com',
         'Accept': 'application/json',
       },
       timeout: 15000, // 15 second timeout
