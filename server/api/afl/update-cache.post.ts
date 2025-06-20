@@ -196,7 +196,7 @@ export default defineEventHandler(async (event) => {
     await kv.put(lastRequestKey, Date.now().toString(), { expirationTtl: 3600 });
 
     console.log('Fetching AFL data...');
-    const data: AFLData = await fetchWithRetry('https://new.dtlive.com.au/storage/games/3221.json');
+    const data: AFLData = await fetchWithRetry('https://new.dtlive.com.au/storage/games/3222.json');
 
     const { gameDetails, home, away } = data;
 
