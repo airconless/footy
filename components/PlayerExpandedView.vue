@@ -52,7 +52,7 @@ const props = defineProps<Props>()
   <div class="p-4 bg-gray-50">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <div class="space-y-2">
-        <h4 class="font-semibold text-sm text-gray-700">Match Stats</h4>
+        <h4 class="font-semibold text-sm text-gray-700"></h4>
         <div class="space-y-1 text-sm">
           <div class="flex justify-between">
             <span class="text-gray-600">Kicks:</span>
@@ -74,7 +74,7 @@ const props = defineProps<Props>()
       </div>
 
       <div class="space-y-2">
-        <h4 class="font-semibold text-sm text-gray-700">Scoring</h4>
+        <h4 class="font-semibold text-sm text-gray-700"></h4>
         <div class="space-y-1 text-sm">
           <div class="flex justify-between">
             <span class="text-gray-600">Goals:</span>
@@ -92,7 +92,7 @@ const props = defineProps<Props>()
       </div>
 
       <div class="space-y-2">
-        <h4 class="font-semibold text-sm text-gray-700">Discipline</h4>
+        <h4 class="font-semibold text-sm text-gray-700"></h4>
         <div class="space-y-1 text-sm">
           <div class="flex justify-between">
             <span class="text-gray-600">Free For:</span>
@@ -110,7 +110,7 @@ const props = defineProps<Props>()
       </div>
 
       <div class="space-y-2">
-        <h4 class="font-semibold text-sm text-gray-700">Fantasy</h4>
+        <h4 class="font-semibold text-sm text-gray-700"></h4>
         <div class="space-y-1 text-sm">
           <div class="flex justify-between">
             <span class="text-gray-600">Price:</span>

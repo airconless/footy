@@ -46,14 +46,54 @@ interface GameData {
   away: { players: Player[] }
 }
 
-// Fetch data from KV store with auto-refresh for live updates
+// Fetch data from KV store with enhanced real-time updates
 const { data: gameData, pending, error, refresh } = await useFetch<GameData>('/api/afl/game', {
-  // Refresh every 15 seconds for live game updates
-  refresh: 15000,
   // Refresh when user returns to tab
-  refreshOnFocus: true,
-  // Refresh when reconnecting to internet
-  refreshOnReconnect: true
+  server: false,
+  default: () => ({ gameDetails: null, home: { players: [] }, away: { players: [] } } as GameData)
+})
+
+// Enhanced update checking using last update timestamp
+const isConnected = ref(true)
+const lastUpdated = ref(new Date())
+let lastUpdateTime = '0'
+
+const checkForUpdates = async () => {
+  try {
+    const response = await $fetch<{ lastUpdateTime: string }>('/api/afl/last-update')
+    const serverUpdateTime = response.lastUpdateTime
+    
+    // If server data is newer than our last known update, refresh immediately
+    if (serverUpdateTime !== lastUpdateTime) {
+      lastUpdateTime = serverUpdateTime
+      await refresh()
+      lastUpdated.value = new Date()
+    }
+  } catch (err) {
+    console.error('Error checking for updates:', err)
+    isConnected.value = false
+  }
+}
+
+// Poll for updates every 3 seconds (faster than data refresh) to catch cron job updates
+let updateCheckInterval: NodeJS.Timeout | null = null
+
+onMounted(() => {
+  updateCheckInterval = setInterval(checkForUpdates, 3000)
+  lastUpdated.value = new Date()
+})
+
+onBeforeUnmount(() => {
+  if (updateCheckInterval) {
+    clearInterval(updateCheckInterval)
+  }
+})
+
+// Update timestamp when data changes
+watch(gameData, () => {
+  if (gameData.value) {
+    lastUpdated.value = new Date()
+  }
 })
 
 const homeData = computed(() => gameData.value?.home?.players || [])
@@ -126,21 +166,8 @@ const columns: TableColumn<Player>[] = [
   }
 ]
 
-const homeTable = useTemplateRef('homeTable')
-const awayTable = useTemplateRef('awayTable')
-
 const columnVisibility = ref({
   playerId: false
-})
-
-// Track last update time
-const lastUpdated = ref(new Date())
-
-// Update timestamp when data refreshes
-watch(gameData, () => {
-  if (gameData.value) {
-    lastUpdated.value = new Date()
-  }
 })
 </script>
 
