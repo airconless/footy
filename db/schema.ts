@@ -10,7 +10,8 @@ export const games = sqliteTable('games', {
   // Teams
   hteam: text('hteam'), // home team name
   ateam: text('ateam'), // away team name
-
+  hteamid: integer('hteamid'), // home team ID
+  ateamid: integer('ateamid'), // away team ID
   
   // Match details
   year: integer('year'),
@@ -19,7 +20,12 @@ export const games = sqliteTable('games', {
   venue: text('venue'),
   
   // Timing
+  date: text('date'), // "2025-03-07 19:40:00"
+  localtime: text('localtime'),
+  tz: text('tz'), // timezone like "+11:00"
   unixtime: integer('unixtime'),
+  timestr: text('timestr'), // "Full Time", "Q1 5:32", etc.
+  updated: text('updated'), // last update timestamp
   
   // Scores
   hscore: integer('hscore'), // home team total score
@@ -31,6 +37,7 @@ export const games = sqliteTable('games', {
   
   // Result
   winner: text('winner'), // team name of winner (null if draw)
+  winnerteamid: integer('winnerteamid'), // team ID of winner (null if draw)
   
   // Status flags
   complete: integer('complete'), // completion percentage (0-100)
@@ -38,8 +45,8 @@ export const games = sqliteTable('games', {
   is_grand_final: integer('is_grand_final'), // 0 or 1
 }, (table) => ({
   // Indexes for common queries
-  yearRoundIdx: uniqueIndex('year_round_teams_idx').on(table.year, table.round),
-  dateIdx: uniqueIndex('date_idx').on(table.unixtime),
+  yearRoundTeamsIdx: uniqueIndex('year_round_teams_idx').on(table.year, table.round, table.hteamid, table.ateamid),
+  unixtimeIdx: uniqueIndex('unixtime_idx').on(table.unixtime),
   apiIDIdx: uniqueIndex('api_id_idx').on(table.apiID),
 }));
 

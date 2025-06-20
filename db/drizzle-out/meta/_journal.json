@@ -15,6 +15,13 @@
       "when": 1750401687920,
       "tag": "0001_damp_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1750403861373,
+      "tag": "0002_white_stranger",
+      "breakpoints": true
     }
   ]
 }

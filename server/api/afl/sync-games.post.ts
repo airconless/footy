@@ -6,6 +6,8 @@ interface SquiggleGame {
   id: number;
   hteam: string;
   ateam: string;
+  hteamid: number;
+  ateamid: number;
   year: number;
   round: number;
   roundname: string;
@@ -23,6 +25,7 @@ interface SquiggleGame {
   agoals: number;
   abehinds: number;
   winner: string | null;
+  winnerteamid: number | null;
   complete: number;
   is_final: number;
   is_grand_final: number;
@@ -67,7 +70,7 @@ export default defineEventHandler(async (event) => {
       .orderBy(desc(games.apiID))
       .limit(1);
 
-    let nextApiID = lastRecord.length > 0 ? lastRecord[0].apiID + 1 : 3101;
+    let nextApiID = lastRecord.length > 0 ? (lastRecord[0].apiID || 3100) + 1 : 3101;
 
     const insertedGames = [];
     const updatedGames = [];
@@ -93,7 +96,12 @@ export default defineEventHandler(async (event) => {
               round: gameData.round,
               roundname: gameData.roundname,
               venue: gameData.venue,
+              date: gameData.date,
+              localtime: gameData.localtime,
+              tz: gameData.tz,
               unixtime: gameData.unixtime,
+              timestr: gameData.timestr,
+              updated: gameData.updated,
               hscore: gameData.hscore || 0,
               ascore: gameData.ascore || 0,
               hgoals: gameData.hgoals || 0,
@@ -101,6 +109,7 @@ export default defineEventHandler(async (event) => {
               agoals: gameData.agoals || 0,
               abehinds: gameData.abehinds || 0,
               winner: gameData.winner || null,
+              winnerteamid: gameData.winnerteamid || null,
               complete: gameData.complete,
               is_final: gameData.is_final,
               is_grand_final: gameData.is_grand_final,
@@ -115,11 +124,18 @@ export default defineEventHandler(async (event) => {
             apiID: nextApiID,
             hteam: gameData.hteam,
             ateam: gameData.ateam,
+            hteamid: gameData.hteamid,
+            ateamid: gameData.ateamid,
             year: gameData.year,
             round: gameData.round,
             roundname: gameData.roundname,
             venue: gameData.venue,
+            date: gameData.date,
+            localtime: gameData.localtime,
+            tz: gameData.tz,
             unixtime: gameData.unixtime,
+            timestr: gameData.timestr,
+            updated: gameData.updated,
             hscore: gameData.hscore || 0,
             ascore: gameData.ascore || 0,
             hgoals: gameData.hgoals || 0,
@@ -127,6 +143,7 @@ export default defineEventHandler(async (event) => {
             agoals: gameData.agoals || 0,
             abehinds: gameData.abehinds || 0,
             winner: gameData.winner || null,
+            winnerteamid: gameData.winnerteamid || null,
             complete: gameData.complete,
             is_final: gameData.is_final,
             is_grand_final: gameData.is_grand_final,
