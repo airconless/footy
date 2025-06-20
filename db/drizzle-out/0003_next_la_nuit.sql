@@ -1,0 +1,1 @@
+DROP INDEX `unixtime_idx`;

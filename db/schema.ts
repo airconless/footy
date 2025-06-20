@@ -46,7 +46,6 @@ export const games = sqliteTable('games', {
 }, (table) => ({
   // Indexes for common queries
   yearRoundTeamsIdx: uniqueIndex('year_round_teams_idx').on(table.year, table.round, table.hteamid, table.ateamid),
-  unixtimeIdx: uniqueIndex('unixtime_idx').on(table.unixtime),
   apiIDIdx: uniqueIndex('api_id_idx').on(table.apiID),
 }));
 
