@@ -4,7 +4,7 @@
 <div class="mt-12">
 
         <!-- Player Tables -->
-        <div v-if="playersPending" class="flex justify-center items-center h-64">
+        <div v-if="showPlayersLoading" class="flex justify-center items-center h-64">
           <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
         </div>
         
@@ -308,7 +308,25 @@ const { data: playerGameData, pending: playersPending, error: playersError, refr
 const isConnected = ref(true)
 const lastUpdated = ref(new Date())
 const cacheUpdating = ref(false)
+const isInitialLoad = ref(true)
 let lastUpdateTime = '0'
+
+// Silent refresh function that doesn't trigger loading state
+const silentRefresh = async () => {
+  try {
+    const response = await $fetch<PlayerGameData>('/api/afl/game', {
+      query: { gameId }
+    })
+    
+    // Update data directly without triggering pending state
+    if (response) {
+      playerGameData.value = response
+      lastUpdated.value = new Date()
+    }
+  } catch (err) {
+    console.error('Error during silent refresh:', err)
+  }
+}
 
 const updateCache = async () => {
   try {
@@ -317,9 +335,8 @@ const updateCache = async () => {
       method: 'POST',
       body: { gameId }
     })
-    // Refresh players after cache update
-    await refreshPlayers()
-    lastUpdated.value = new Date()
+    // Use silent refresh instead of refreshPlayers to avoid loading spinner
+    await silentRefresh()
   } catch (err) {
     console.error('Error updating cache:', err)
   } finally {
@@ -334,11 +351,11 @@ const checkForUpdates = async () => {
     })
     const serverUpdateTime = response.lastUpdateTime
     
-    // If server data is newer than our last known update, refresh immediately
+    // If server data is newer than our last known update, refresh silently
     if (serverUpdateTime !== lastUpdateTime) {
       lastUpdateTime = serverUpdateTime
-      await refreshPlayers()
-      lastUpdated.value = new Date()
+      // Use silent refresh instead of refreshPlayers to avoid loading spinner
+      await silentRefresh()
     }
   } catch (err) {
     console.error('Error checking for updates:', err)
@@ -350,6 +367,11 @@ const checkForUpdates = async () => {
 let updateCheckInterval: NodeJS.Timeout | null = null
 
 onMounted(() => {
+  // Mark initial load as complete after first mount
+  nextTick(() => {
+    isInitialLoad.value = false
+  })
+  
   updateCheckInterval = setInterval(checkForUpdates, 3000)
   lastUpdated.value = new Date()
 })
@@ -365,6 +387,11 @@ watch(playerGameData, () => {
   if (playerGameData.value) {
     lastUpdated.value = new Date()
   }
+})
+
+// Show loading spinner only during initial load, not during background updates
+const showPlayersLoading = computed(() => {
+  return isInitialLoad.value && playersPending.value
 })
 
 const homeData = computed(() => playerGameData.value?.home?.players || [])
