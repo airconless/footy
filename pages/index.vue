@@ -1,104 +1,150 @@
 <script setup lang="ts">
-// Set page meta
+interface Game {
+  id: number;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  homeGoals: number;
+  homeBehinds: number;
+  awayGoals: number;
+  awayBehinds: number;
+  venue: string;
+  date: string;
+  localtime: string;
+  timestr: string;
+  winner: string | null;
+  complete: number;
+  is_final: number;
+  is_grand_final: number;
+  readableTime: string;
+  unixtime: number;
+  round: number;
+  roundname: string;
+}
+
+interface ActiveGamesData {
+  success: boolean;
+  currentUnixTime: number;
+  timeWindow: {
+    start: number;
+    end: number;
+    startReadable: string;
+    endReadable: string;
+    currentReadable: string;
+  };
+  activeGamesCount: number;
+  activeGames: Game[];
+}
+
+
+// Fetch current active games
+const { data: activeGamesData, pending, error, refresh } = await useFetch<ActiveGamesData>('/api/afl/active-games', {
+  server: false,
+  default: () => ({
+    success: false,
+    currentUnixTime: 0,
+    timeWindow: { start: 0, end: 0, startReadable: '', endReadable: '', currentReadable: '' },
+    activeGamesCount: 0,
+    activeGames: []
+  } as ActiveGamesData)
+});
+
+// Auto-refresh every 30 seconds to keep current games updated
+let refreshInterval: NodeJS.Timeout | null = null;
+
+onMounted(() => {
+  refreshInterval = setInterval(() => {
+    refresh();
+  }, 30000); // 30 seconds
+});
+
+onBeforeUnmount(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+  }
+});
 </script>
 
 <template>
   <div class="min-h-screen">
-    <!-- Hero Section -->
-    <div class="bg-gradient-to-br from-blue-600 to-purple-700 dark:from-blue-800 dark:to-purple-900">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div class="text-center">
-          <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
-            Welcome to Footy WTF
-          </h1>
-          <p class="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            Your ultimate destination for live AFL statistics, player performance, and match analytics
-          </p>
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+
+    <!-- Current Games Section -->
+    <div class="py-12 bg-gray-50 dark:bg-gray-900">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Section Header -->
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold mb-4">
+            Current Games
+          </h2>
+          <div class="flex items-center justify-center gap-2">
+            <div class="w-2 h-2 bg-success-400 rounded-full animate-pulse"></div>
+            <span class="text-sm text-gray-600">Updated every 30 seconds</span>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="pending" class="flex justify-center items-center h-64">
+          <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="error" class="text-center py-12">
+          <div class="text-error-500 mb-4">
+            <UIcon name="i-heroicons-exclamation-circle" class="mx-auto h-12 w-12 mb-4" />
+            <p class="text-lg font-medium">Unable to load current games</p>
+            <p class="text-sm text-gray-500 mt-2">{{ error }}</p>
+          </div>
+          <UButton @click="refresh()" color="primary" variant="outline">
+            Try Again
+          </UButton>
+        </div>
+
+        <!-- Games Grid -->
+        <div v-else-if="activeGamesData?.activeGames?.length" class="space-y-8">
+          <!-- Time Window Info -->
+          <div class="bg-primary-50 rounded-lg p-4 text-center">
+            <p class="text-sm text-primary-700">
+              <strong>{{ activeGamesData.activeGamesCount }}</strong> active games found
+              (as of {{ activeGamesData.timeWindow.currentReadable }})
+            </p>
+          </div>
+
+          <!-- Games Grid -->
+          <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <GameCard 
+              v-for="game in activeGamesData.activeGames" 
+              :key="game.id"
+              :game="game"
+            />
+          </div>
+        </div>
+
+        <!-- No Current Games -->
+        <div v-else class="text-center py-16">
+          <div class="text-gray-500">
+            <UIcon name="i-heroicons-clock" class="mx-auto h-16 w-16 mb-6" />
+            <h3 class="text-2xl font-medium mb-4">No Current Games</h3>
+            <p class="text-lg mb-2">There are no AFL games happening right now.</p>
+            <p class="text-sm text-gray-400 mb-6">
+              Last checked: {{ activeGamesData?.timeWindow?.currentReadable || 'Unknown' }}
+            </p>
+            <div class="flex justify-center gap-4">
+              <UButton @click="refresh()" color="primary" variant="outline">
+                Refresh
+              </UButton>
+              <UButton 
+                to="/rounds/2025-1" 
+                color="primary"
+              >
+                Browse Rounds
+              </UButton>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Features Section -->
-    <div class="py-24 bg-gray-50 dark:bg-gray-900">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Everything AFL in One Place
-          </h2>
-          <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Explore comprehensive AFL data with real-time updates, detailed player statistics, and match insights
-          </p>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <!-- Live Statistics -->
-          <UCard class="hover:shadow-lg transition-shadow cursor-pointer" @click="navigateToLiveGame">
-            <div class="text-center p-6">
-              <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Live Statistics</h3>
-              <p class="text-gray-600 dark:text-gray-400">
-                Real-time player performance, fantasy scores, and match statistics updated every 3 seconds
-              </p>
-            </div>
-          </UCard>
-
-          <!-- Round Explorer -->
-          <UCard class="hover:shadow-lg transition-shadow cursor-pointer">
-            <div class="text-center p-6">
-              <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Round Explorer</h3>
-              <p class="text-gray-600 dark:text-gray-400">
-                Browse all AFL rounds, view match schedules, and explore game results across the season
-              </p>
-            </div>
-          </UCard>
-
-          <!-- Game Details -->
-          <UCard class="hover:shadow-lg transition-shadow">
-            <div class="text-center p-6">
-              <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Game Analysis</h3>
-              <p class="text-gray-600 dark:text-gray-400">
-                Deep dive into individual games with detailed player breakdowns, team statistics, and match analysis
-              </p>
-            </div>
-          </UCard>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="py-16 bg-white dark:bg-gray-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-8">
-            Start Exploring
-          </h2>
-          <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">
-            Use the rounds dropdown in the navigation to jump straight to any AFL round, or explore live game statistics
-          </p>
-          <UButton 
-            label="View Latest Round" 
-            color="primary" 
-            size="lg"
-            icon="i-lucide-arrow-right"
-          />
-        </div>
-      </div>
-    </div>
   </div>
 </template> 

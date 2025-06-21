@@ -2,9 +2,9 @@
   <div class="min-h-screen" :class="{ 'dark': isDark }">
     <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
+        <div class="grid grid-cols-3 items-center h-16">
           <!-- Logo/Brand -->
-          <div class="flex-shrink-0">
+          <div class="flex justify-start">
             <NuxtLink 
               to="/" 
               class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-lg font-medium transition-colors"
@@ -14,28 +14,52 @@
             </NuxtLink>
           </div>
 
-          <!-- Navigation -->
-          <nav class="hidden md:flex space-x-8 items-center">
-
-            
-            <!-- Rounds Dropdown -->
-            <UDropdownMenu 
-              v-model:open="roundsDropdownOpen" 
-              :items="roundMenuItems" 
-              :ui="{ content: 'w-64' }"
-            >
+          <!-- Navigation (Centered) -->
+          <nav class="hidden md:flex justify-center">
+            <div class="flex space-x-4 items-center">
+              <!-- Live Games -->
               <UButton 
-                label="Select Round" 
-                color="neutral" 
-                variant="outline" 
-                icon="i-lucide-calendar"
-                :loading="roundsLoading"
-              />
-            </UDropdownMenu>
+                to="/"
+                color="primary" 
+                variant="soft"
+                icon="i-heroicons-signal"
+                size="sm"
+              >
+                Live Games
+              </UButton>
+
+              <!-- Current Round -->
+              <UButton 
+                :to="currentRoundPath"
+                color="primary" 
+                variant="outline"
+                icon="i-heroicons-calendar-days"
+                :loading="currentRoundLoading"
+                size="sm"
+              >
+                {{ currentRoundLabel }}
+              </UButton>
+              
+              <!-- Rounds Dropdown -->
+              <UDropdownMenu 
+                v-model:open="roundsDropdownOpen" 
+                :items="roundMenuItems" 
+                :ui="{ content: 'w-64' }"
+              >
+                <UButton 
+                  label="All Rounds" 
+                  color="neutral" 
+                  variant="outline" 
+                  icon="i-heroicons-chevron-down"
+                  :loading="roundsLoading"
+                  size="sm"
+                />
+              </UDropdownMenu>
+            </div>
           </nav>
 
-          <!-- Dark Mode Toggle -->
-          <div class="flex items-center space-x-4">
+          <!-- Right Side Controls -->
+          <div class="flex justify-end items-center space-x-4">
             <button
               @click="toggleDarkMode"
               class="p-2 rounded-md text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -64,28 +88,48 @@
 
         <!-- Mobile Navigation -->
         <div v-show="showMobileMenu" class="md:hidden border-t border-gray-200 dark:border-gray-700 pt-4 pb-4">
-          <div class="space-y-1">
-            <NuxtLink 
-              to="/" 
-              @click="closeMobileMenu"
-              class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              active-class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-            >
-              Home
-            </NuxtLink>
+          <div class="space-y-3">
+            <!-- Live Games -->
+            <div class="px-3">
+              <UButton 
+                to="/"
+                @click="closeMobileMenu"
+                color="primary" 
+                variant="soft"
+                icon="i-heroicons-signal"
+                class="w-full justify-start"
+              >
+                Live Games
+              </UButton>
+            </div>
+
+            <!-- Current Round -->
+            <div class="px-3">
+              <UButton 
+                :to="currentRoundPath"
+                @click="closeMobileMenu"
+                color="primary" 
+                variant="outline"
+                icon="i-heroicons-calendar-days"
+                :loading="currentRoundLoading"
+                class="w-full justify-start"
+              >
+                {{ currentRoundLabel }}
+              </UButton>
+            </div>
             
             <!-- Mobile Rounds Dropdown -->
-            <div class="px-3 py-2">
+            <div class="px-3">
               <UDropdownMenu 
                 v-model:open="mobileRoundsDropdownOpen" 
                 :items="roundMenuItems" 
                 :ui="{ content: 'w-full' }"
               >
                 <UButton 
-                  label="Select Round" 
+                  label="All Rounds" 
                   color="neutral" 
                   variant="outline" 
-                  icon="i-lucide-calendar"
+                  icon="i-heroicons-chevron-down"
                   :loading="roundsLoading"
                   class="w-full"
                 />
@@ -128,6 +172,38 @@ const mobileRoundsDropdownOpen = ref(false)
 const { data: roundsData, pending: roundsLoading } = await useFetch<RoundsResponse>('/api/afl/rounds', {
   server: false,
   default: () => ({ success: false, rounds: [] } as RoundsResponse)
+})
+
+// Fetch current round data
+interface CurrentRoundResponse {
+  success: boolean;
+  currentRound: {
+    year: number;
+    round: number;
+    roundname: string;
+    value: string;
+    source: string;
+  } | null;
+}
+
+const { data: currentRoundData, pending: currentRoundLoading } = await useFetch<CurrentRoundResponse>('/api/afl/current-round', {
+  server: false,
+  default: () => ({ success: false, currentRound: null } as CurrentRoundResponse)
+})
+
+// Computed properties for current round
+const currentRoundPath = computed(() => {
+  if (currentRoundData.value?.currentRound?.value) {
+    return `/rounds/${currentRoundData.value.currentRound.value}`;
+  }
+  return '/rounds/2025-1'; // fallback
+})
+
+const currentRoundLabel = computed(() => {
+  if (currentRoundData.value?.currentRound?.roundname) {
+    return currentRoundData.value.currentRound.roundname;
+  }
+  return 'Current Round';
 })
 
 // Convert rounds data to dropdown menu format
