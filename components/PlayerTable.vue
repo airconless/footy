@@ -4,6 +4,7 @@ import { upperFirst } from 'scule'
 import type { TableColumn } from '@nuxt/ui'
 import type { Column } from '@tanstack/vue-table'
 import NumberFlow from '@number-flow/vue'
+import { useWindowSize } from '@vueuse/core'
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
@@ -52,10 +53,12 @@ type GameDetails = {
 interface Props {
   data?: Player[]
   gameDetails?: GameDetails
+  title?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  data: () => []
+  data: () => [],
+  title: 'Player Statistics'
 })
 
 function getHeader(column: Column<Player>, label: string) {
@@ -119,7 +122,7 @@ const columns: TableColumn<Player>[] = [
     id: 'expand',
     meta: {
       class: {
-        td: 'w-10 px-2'
+        td: 'w-6 md:w-10 px-0 md:px-2'
       }
     },
     cell: ({ row }) =>
@@ -131,6 +134,14 @@ const columns: TableColumn<Player>[] = [
         square: true,
         'aria-label': 'Expand',
         class: 'transition-transform duration-200' + (row.getIsExpanded() ? ' rotate-180' : ''),
+        ui: {
+          base: 'h-5 w-5 md:h-6 md:w-6 p-0.5 md:p-1',
+          icon: {
+            size: {
+              xs: 'h-3 w-3 md:h-4 md:w-4'
+            }
+          }
+        },
         onClick: () => row.toggleExpanded()
       })
   },
@@ -156,9 +167,9 @@ const columns: TableColumn<Player>[] = [
     },
     cell: ({ row }) => {
       const player = row.original
-      return h('div', { class: 'flex items-center gap-3 py-1' }, [
-        h('span', { class: 'flex-shrink-0 min-w-[2rem] text-center' }, player.jumperNumber),
-        h('span', { class: 'font-large truncate' }, player.name)
+      return h('div', { class: 'flex items-center gap-1 md:gap-3 py-1' }, [
+        h('span', { class: 'flex-shrink-0 min-w-[1.5rem] md:min-w-[2rem] text-center text-xs md:text-sm font-bold' }, player.jumperNumber),
+        h('span', { class: 'font-medium truncate text-xs md:text-sm' }, player.name)
       ])
     }
   },
@@ -172,7 +183,7 @@ const columns: TableColumn<Player>[] = [
     },
     cell: ({ row }) => {
       const tog = row.getValue('eTOGPercentage') as number
-      return h('span', { class: 'font-medium' }, `${Math.round(tog)}%`)
+      return h('span', { class: 'font-medium text-xs md:text-sm' }, `${Math.round(tog)}%`)
     }
   },
   {
@@ -216,7 +227,8 @@ const table = useTemplateRef('table')
 const columnVisibility = ref({
   playerId: false,
   aflFantasyPosition: false,
-  currentBench: false
+  currentBench: false,
+  eTOGPercentage: false // Hide TOG% on mobile by default
 })
 
 const expanded = ref({})
@@ -227,6 +239,29 @@ const sorting = ref([
     desc: true
   }
 ])
+
+// Add responsive breakpoint detection
+const { width } = useWindowSize()
+const isMobile = computed(() => width.value < 768)
+
+// Watch for mobile changes and update column visibility
+watch(isMobile, (mobile) => {
+  if (mobile) {
+    // Hide more columns on mobile
+    columnVisibility.value = {
+      ...columnVisibility.value,
+      eTOGPercentage: false,
+      aflFantasyPosition: false,
+      currentBench: false
+    }
+  } else {
+    // Show more columns on desktop
+    columnVisibility.value = {
+      ...columnVisibility.value,
+      eTOGPercentage: true
+    }
+  }
+}, { immediate: true })
 
 function getFantasyColorClass(score: number): string {
   if (score >= 200) return 'fantasy-platinum'
@@ -252,35 +287,48 @@ function getRowClass(player: Player) {
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 w-full mb-8">
-    <div class="flex justify-between items-center px-4 py-3.5 border-b border-accented">
-      <UDropdownMenu
-        :items="
-          table?.tableApi
-            ?.getAllColumns()
-            .filter((column) => column.getCanHide())
-            .map((column) => ({
-              label: upperFirst(column.id),
-              type: 'checkbox' as const,
-              checked: column.getIsVisible(),
-              onUpdateChecked(checked: boolean) {
-                table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
-              },
-              onSelect(e?: Event) {
-                e?.preventDefault()
-              }
-            }))
-        "
-        :content="{ align: 'end' }"
-      >
-        <UButton
-          label="Columns"
-          color="neutral"
-          variant="outline"
-          trailing-icon="i-lucide-chevron-down"
-        />
-      </UDropdownMenu>
-    </div>
+  <UCard class="mb-8 rounded-none md:rounded-lg first:border-r-0 md:first:border-r border-r border-default md:border-r-0">
+    <template #header>
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm md:text-lg font-semibold">{{ title }}</h3>
+        <UDropdownMenu
+          :items="
+            table?.tableApi
+              ?.getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => ({
+                label: upperFirst(column.id),
+                type: 'checkbox' as const,
+                checked: column.getIsVisible(),
+                onUpdateChecked(checked: boolean) {
+                  table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
+                },
+                onSelect(e?: Event) {
+                  e?.preventDefault()
+                }
+              }))
+          "
+          :content="{ align: 'end' }"
+        >
+          <UButton
+            color="neutral"
+            variant="outline"
+            trailing-icon="i-lucide-chevron-down"
+            size="sm"
+            class="md:hidden"
+            square
+          />
+          <UButton
+            label="Columns"
+            color="neutral"
+            variant="outline"
+            trailing-icon="i-lucide-chevron-down"
+            size="sm"
+            class="hidden md:inline-flex"
+          />
+        </UDropdownMenu>
+      </div>
+    </template>
 
     <UTable
       ref="table"
@@ -290,13 +338,11 @@ function getRowClass(player: Player) {
       :data="props.data"
       :columns="columns"
       :ui="{
-        root: 'min-w-full',
-        td: 'empty:p-0', // helps with spacing issues
-        th: 'px-4 py-3',
-        tbody: '[&>tr:last-child]:border-0',
-        tr: {
-          base: 'table-row-colored'
-        }
+        root: 'min-w-full text-xs md:text-sm',
+        thead: 'hidden md:table-header-group',
+        td: 'empty:p-0 px-1 md:px-4 py-1 md:py-2',
+        th: 'px-1 md:px-4 py-2 md:py-3 text-xs md:text-sm',
+        tbody: '[&>tr:last-child]:border-0'
       }"
     >
       <template #aflFantasy-cell="{ row }">
@@ -306,10 +352,14 @@ function getRowClass(player: Player) {
       </template>
       
       <template #expanded="{ row }">
-        <PlayerExpandedView :player="row.original" :gameDetails="props.gameDetails" />
+        <PlayerExpandedView 
+          v-if="props.gameDetails" 
+          :player="row.original" 
+          :game-details="props.gameDetails" 
+        />
       </template>
     </UTable>
-  </div>
+  </UCard>
 </template>
 
 <style scoped>

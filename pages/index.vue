@@ -133,12 +133,6 @@ onBeforeUnmount(() => {
               <UButton @click="refresh()" color="primary" variant="outline">
                 Refresh
               </UButton>
-              <UButton 
-                to="/rounds/2025-1" 
-                color="primary"
-              >
-                Browse Rounds
-              </UButton>
             </div>
           </div>
         </div>

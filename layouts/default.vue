@@ -1,21 +1,21 @@
 <template>
   <div class="min-h-screen" :class="{ 'dark': isDark }">
-    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <header class="bg-default shadow-sm border-b border-default">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-3 items-center h-16">
+        <div class="flex justify-between items-center h-16">
           <!-- Logo/Brand -->
           <div class="flex justify-start">
             <NuxtLink 
               to="/" 
-              class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-lg font-medium transition-colors"
-              active-class="text-blue-600 dark:text-blue-400"
+              class="text-muted hover:text-default px-3 py-2 rounded-md text-base md:text-lg font-medium transition-colors whitespace-nowrap"
+              active-class="text-primary"
             >
              Footy 🏈 WTF
             </NuxtLink>
           </div>
 
-          <!-- Navigation (Centered) -->
-          <nav class="hidden md:flex justify-center">
+          <!-- Desktop Navigation (Centered) -->
+          <nav class="hidden md:flex justify-center absolute left-1/2 transform -translate-x-1/2">
             <div class="flex space-x-4 items-center">
               <!-- Live Games -->
               <UButton 
@@ -60,9 +60,10 @@
 
           <!-- Right Side Controls -->
           <div class="flex justify-end items-center space-x-4">
+            <!-- Desktop Dark Mode Toggle -->
             <button
               @click="toggleDarkMode"
-              class="p-2 rounded-md text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              class="hidden md:block p-2 rounded-md text-muted hover:text-default hover:bg-elevated transition-colors"
               aria-label="Toggle dark mode"
             >
               <svg v-if="isDark" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -76,7 +77,7 @@
             <!-- Mobile menu button -->
             <button
               @click="toggleMobileMenu"
-              class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              class="md:hidden p-2 rounded-md text-muted hover:text-default hover:bg-elevated transition-colors"
               aria-label="Toggle mobile menu"
             >
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -87,7 +88,7 @@
         </div>
 
         <!-- Mobile Navigation -->
-        <div v-show="showMobileMenu" class="md:hidden border-t border-gray-200 dark:border-gray-700 pt-4 pb-4">
+        <div v-show="showMobileMenu" class="md:hidden border-t border-default pt-4 pb-4">
           <div class="space-y-3">
             <!-- Live Games -->
             <div class="px-3">
@@ -98,6 +99,7 @@
                 variant="soft"
                 icon="i-heroicons-signal"
                 class="w-full justify-start"
+                size="sm"
               >
                 Live Games
               </UButton>
@@ -113,6 +115,7 @@
                 icon="i-heroicons-calendar-days"
                 :loading="currentRoundLoading"
                 class="w-full justify-start"
+                size="sm"
               >
                 {{ currentRoundLabel }}
               </UButton>
@@ -131,9 +134,31 @@
                   variant="outline" 
                   icon="i-heroicons-chevron-down"
                   :loading="roundsLoading"
-                  class="w-full"
+                  class="w-full justify-start"
+                  size="sm"
                 />
               </UDropdownMenu> 
+            </div>
+
+            <!-- Mobile Dark Mode Toggle -->
+            <div class="px-3">
+              <UButton
+                @click="toggleDarkMode"
+                color="neutral"
+                variant="outline"
+                class="w-full justify-start"
+                size="sm"
+              >
+                <template #leading>
+                  <svg v-if="isDark" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                  </svg>
+                  <svg v-else class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                  </svg>
+                </template>
+                {{ isDark ? 'Light Mode' : 'Dark Mode' }}
+              </UButton>
             </div>
           </div>
         </div>
@@ -141,7 +166,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="bg-gray-50 dark:bg-gray-900 min-h-[calc(100vh-4rem)] transition-colors">
+    <main class="bg-muted min-h-[calc(100vh-4rem)] transition-colors">
       <slot />
     </main>
   </div>

@@ -1,32 +1,54 @@
 <template>
+
+<!-- Player Statistics Section -->
+<div class="mt-12">
+
+        <!-- Player Tables -->
+        <div v-if="playersPending" class="flex justify-center items-center h-64">
+          <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        </div>
+        
+        <div v-else-if="playersError" class="text-error text-center">
+          <p>Error loading player data: {{ playersError }}</p>
+        </div>
+        
+        <div v-else class="grid grid-cols-2 gap-0 md:gap-8">
+          <!-- Home Team Players -->
+          <PlayerTable 
+            :data="homeData" 
+            :gameDetails="playerGameData?.gameDetails"
+            :title="gameData?.game?.homeTeam || 'Home Team'"
+          />
+
+          <!-- Away Team Players -->
+          <PlayerTable 
+            :data="awayData" 
+            :gameDetails="playerGameData?.gameDetails"
+            :title="gameData?.game?.awayTeam || 'Away Team'"
+          />
+        </div>
+      </div>
+
+
+
     <div class="p-6">
       <div v-if="pending" class="flex justify-center items-center h-64">
-        <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
       
-      <div v-else-if="error" class="text-red-500 text-center">
+      <div v-else-if="error" class="text-error text-center">
         <p>Error loading game data: {{ error }}</p>
       </div>
       
       <div v-else-if="gameData?.game">
-        <!-- Back Button -->
-        <div class="mb-6">
-          <UButton 
-            icon="i-lucide-arrow-left" 
-            variant="ghost" 
-            @click="$router.back()"
-            label="Back to Round"
-          />
-        </div>
-  
         <!-- Game Header -->
         <div class="mb-8">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 class="text-3xl font-bold text-highlighted">
                 {{ gameData.game.homeTeam }} vs {{ gameData.game.awayTeam }}
               </h1>
-              <p class="text-lg text-gray-600 dark:text-gray-400 mt-1">
+              <p class="text-lg text-muted mt-1">
                 {{ gameData.game.roundname }} - {{ gameData.game.year }} Season
               </p>
             </div>
@@ -43,19 +65,19 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <UCard>
               <div class="text-center">
-                <div class="text-sm text-gray-500 dark:text-gray-400">Date</div>
+                <div class="text-sm text-muted">Date</div>
                 <div class="text-lg font-semibold">{{ formatDate(gameData.game.date) }}</div>
               </div>
             </UCard>
             <UCard>
               <div class="text-center">
-                <div class="text-sm text-gray-500 dark:text-gray-400">Time</div>
+                <div class="text-sm text-muted">Time</div>
                 <div class="text-lg font-semibold">{{ gameData.game.localtime }}</div>
               </div>
             </UCard>
             <UCard>
               <div class="text-center">
-                <div class="text-sm text-gray-500 dark:text-gray-400">Venue</div>
+                <div class="text-sm text-muted">Venue</div>
                 <div class="text-lg font-semibold">{{ gameData.game.venue }}</div>
               </div>
             </UCard>
@@ -69,7 +91,7 @@
             <template #header>
               <div class="flex items-center justify-between">
                 <h3 class="text-xl font-bold">{{ gameData.game.homeTeam }}</h3>
-                <div v-if="gameData.game.winner === gameData.game.homeTeam" class="text-green-500">
+                <div v-if="gameData.game.winner === gameData.game.homeTeam" class="text-success">
                   <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                   </svg>
@@ -78,10 +100,10 @@
             </template>
             
             <div class="text-center">
-              <div class="text-6xl font-bold text-gray-900 dark:text-white mb-2">
+              <div class="text-6xl font-bold text-highlighted mb-2">
                 {{ gameData.game.homeScore || 0 }}
               </div>
-              <div class="text-2xl text-gray-600 dark:text-gray-400">
+              <div class="text-2xl text-muted">
                 {{ gameData.game.homeGoals || 0 }} goals, {{ gameData.game.homeBehinds || 0 }} behinds
               </div>
             </div>
@@ -92,7 +114,7 @@
             <template #header>
               <div class="flex items-center justify-between">
                 <h3 class="text-xl font-bold">{{ gameData.game.awayTeam }}</h3>
-                <div v-if="gameData.game.winner === gameData.game.awayTeam" class="text-green-500">
+                <div v-if="gameData.game.winner === gameData.game.awayTeam" class="text-success">
                   <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                   </svg>
@@ -101,10 +123,10 @@
             </template>
             
             <div class="text-center">
-              <div class="text-6xl font-bold text-gray-900 dark:text-white mb-2">
+              <div class="text-6xl font-bold text-highlighted mb-2">
                 {{ gameData.game.awayScore || 0 }}
               </div>
-              <div class="text-2xl text-gray-600 dark:text-gray-400">
+              <div class="text-2xl text-muted">
                 {{ gameData.game.awayGoals || 0 }} goals, {{ gameData.game.awayBehinds || 0 }} behinds
               </div>
             </div>
@@ -120,7 +142,7 @@
             
             <div class="space-y-3">
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Status:</span>
+                <span class="text-muted">Status:</span>
                 <UBadge 
                   :color="getGameStatusColor(gameData.game)" 
                   variant="subtle"
@@ -129,19 +151,19 @@
                 </UBadge>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Completion:</span>
+                <span class="text-muted">Completion:</span>
                 <span>{{ gameData.game.complete }}%</span>
               </div>
               <div v-if="gameData.game.is_final" class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Final:</span>
+                <span class="text-muted">Final:</span>
                 <UBadge color="success" variant="subtle">Yes</UBadge>
               </div>
               <div v-if="gameData.game.is_grand_final" class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Grand Final:</span>
+                <span class="text-muted">Grand Final:</span>
                 <UBadge color="primary" variant="subtle">Yes</UBadge>
               </div>
               <div v-if="gameData.game.timestr" class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Time Status:</span>
+                <span class="text-muted">Time Status:</span>
                 <span>{{ gameData.game.timestr }}</span>
               </div>
             </div>
@@ -154,114 +176,33 @@
             
             <div class="space-y-3">
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Round:</span>
+                <span class="text-muted">Round:</span>
                 <span>{{ gameData.game.roundname }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Season:</span>
+                <span class="text-muted">Season:</span>
                 <span>{{ gameData.game.year }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Venue:</span>
+                <span class="text-muted">Venue:</span>
                 <span>{{ gameData.game.venue }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Date:</span>
+                <span class="text-muted">Date:</span>
                 <span>{{ formatDate(gameData.game.date) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Local Time:</span>
+                <span class="text-muted">Local Time:</span>
                 <span>{{ gameData.game.localtime }}</span>
               </div>
                       </div>
         </UCard>
       </div>
 
-      <!-- Player Statistics Section -->
-      <div class="mt-12">
-        <div class="mb-8">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Live Player Statistics
-          </h2>
-          
-          <!-- Live update controls -->
-          <div class="flex justify-between items-center mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-              <span class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                Live Updates Active - Last updated: {{ lastUpdated.toLocaleTimeString() }}
-              </span>
-            </div>
-            <div class="flex gap-2">
-              <UButton 
-                @click="refreshPlayers()" 
-                :loading="playersPending"
-                color="primary" 
-                variant="outline"
-                size="sm"
-              >
-                Refresh Now
-              </UButton>
-              <UButton 
-                @click="updateCache()" 
-                :loading="cacheUpdating"
-                color="success" 
-                variant="outline"
-                size="sm"
-              >
-                Update Cache
-              </UButton>
-            </div>
           </div>
-        </div>
-
-        <!-- Player Tables -->
-        <div v-if="playersPending" class="flex justify-center items-center h-64">
-          <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-        </div>
-        
-        <div v-else-if="playersError" class="text-red-500 text-center">
-          <p>Error loading player data: {{ playersError }}</p>
-        </div>
-        
-        <div v-else class="grid grid-cols-2 gap-4 md:gap-8">
-          <!-- Home Team Card -->
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ gameData?.game?.homeTeam || 'Home Team' }} 
-                </h3>
-                <UBadge color="primary" variant="subtle">
-                  {{ homeData.length }}
-                </UBadge>
-              </div>
-            </template>
-            
-            <PlayerTable :data="homeData" :gameDetails="playerGameData?.gameDetails" />
-          </UCard>
-
-          <!-- Away Team Card -->
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ gameData?.game?.awayTeam || 'Away Team' }} 
-                </h3>
-                <UBadge color="secondary" variant="subtle">
-                  {{ awayData.length }}
-                </UBadge>
-              </div>
-            </template>
-            
-            <PlayerTable :data="awayData" :gameDetails="playerGameData?.gameDetails" />
-          </UCard>
-        </div>
-      </div>
-    </div>
     
     <div v-else class="text-center py-12">
-        <div class="text-gray-500 dark:text-gray-400">
+        <div class="text-muted">
           <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
