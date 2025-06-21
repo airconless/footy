@@ -1,6 +1,13 @@
 <template>
   <div class="w-full h-64">
-    <Line :data="data" :options="options" />
+    <ClientOnly>
+      <Line :data="data" :options="options" />
+      <template #fallback>
+        <div class="w-full h-64 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded">
+          <div class="text-gray-500 dark:text-gray-400">Loading chart...</div>
+        </div>
+      </template>
+    </ClientOnly>
   </div>
 </template>
 
@@ -17,15 +24,17 @@ import {
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-)
+if (process.client) {
+  ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+  )
+}
 
 interface Props {
   chartData: any

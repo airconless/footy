@@ -30,6 +30,7 @@ type Player = {
   eTOG: number
   eTOGPercentage: number
   currentBench: string
+  benchTime?: string
   aflFantasyPrice: number
   aflFantasyTotalPriceChange: number
   aflFantasyEstimatedPriceChange: number
@@ -200,14 +201,50 @@ const columns: TableColumn<Player>[] = [
     header: ({ column }) => getHeader(column, 'Status'),
     meta: {
       class: {
-        td: 'w-20 text-center'
+        td: 'w-32 text-center'
       }
     },
     cell: ({ row }) => {
+      const player = row.original
       const status = row.getValue('currentBench') as string
-      const color = status === 'Y' ? 'warning' : 'success'
-      const text = status === 'Y' ? 'Bench' : 'Field'
-      return h(UBadge, { color, variant: 'subtle', size: 'xs' }, () => text)
+      const benchTime = player.benchTime
+      const iconImage = player.iconImage
+      
+      // Map iconImage to emojis
+      const getStatusEmoji = (iconImage: string) => {
+        switch (iconImage) {
+          case 'redvest.png': return '🦺'
+          case 'bandaid.png': return '🤕'
+          case 'greenvest.png': return '🟢'
+          case 'redcross.png': return '🚨'
+          case 'padlock.png': return '🗜️'
+          case 'tag.png': return '🔖'
+          default: return null
+        }
+      }
+      
+      const statusEmoji = getStatusEmoji(iconImage)
+      const elements = []
+      
+      // Add status emoji if present
+      if (statusEmoji) {
+        elements.push(h('span', { class: 'text-base' }, statusEmoji))
+      }
+      
+      // Add bench info if on bench
+      if (status === 'Y') {
+        elements.push(h('span', { class: 'text-base' }, '🪑'))
+        elements.push(
+          benchTime 
+            ? h('span', { class: 'text-orange-600 dark:text-orange-400 font-mono' }, benchTime)
+            : h('span', { class: 'text-orange-600 dark:text-orange-400' }, 'Bench')
+        )
+      }
+      
+      // Return elements if any exist, otherwise null
+      return elements.length > 0 
+        ? h('div', { class: 'flex items-center justify-center gap-1 text-xs' }, elements)
+        : null
     }
   },
   {
@@ -227,8 +264,39 @@ const table = useTemplateRef('table')
 const columnVisibility = ref({
   playerId: false,
   aflFantasyPosition: false,
-  currentBench: false,
-  eTOGPercentage: false // Hide TOG% on mobile by default
+  currentBench: true, // Show bench column by default
+  eTOGPercentage: false // Hide TOG% by default
+})
+
+// Functions to toggle column visibility
+function togglePosition() {
+  columnVisibility.value.aflFantasyPosition = !columnVisibility.value.aflFantasyPosition
+}
+
+function toggleBench() {
+  columnVisibility.value.currentBench = !columnVisibility.value.currentBench
+}
+
+function toggleTOG() {
+  columnVisibility.value.eTOGPercentage = !columnVisibility.value.eTOGPercentage
+}
+
+// Computed property for column toggle items
+const columnToggleItems = computed(() => {
+  return [
+    {
+      label: columnVisibility.value.aflFantasyPosition ? '✓ Position' : 'Position',
+      click: togglePosition
+    },
+    {
+      label: columnVisibility.value.currentBench ? '✓ Status' : 'Status',
+      click: toggleBench
+    },
+    {
+      label: columnVisibility.value.eTOGPercentage ? '✓ TOG%' : 'TOG%',
+      click: toggleTOG
+    }
+  ]
 })
 
 const expanded = ref({})
@@ -241,8 +309,8 @@ const sorting = ref([
 ])
 
 // Add responsive breakpoint detection
-const { width } = useWindowSize()
-const isMobile = computed(() => width.value < 768)
+const { width } = process.client ? useWindowSize() : { width: ref(1024) }
+const isMobile = computed(() => process.client ? width.value < 768 : true) // Default to mobile on server
 
 // Watch for mobile changes and update column visibility
 watch(isMobile, (mobile) => {
@@ -255,10 +323,10 @@ watch(isMobile, (mobile) => {
       currentBench: false
     }
   } else {
-    // Show more columns on desktop
+    // Show more columns on desktop (but keep TOG% hidden by default)
     columnVisibility.value = {
-      ...columnVisibility.value,
-      eTOGPercentage: true
+      ...columnVisibility.value
+      // Removed eTOGPercentage: true so it stays hidden by default
     }
   }
 }, { immediate: true })
@@ -292,22 +360,7 @@ function getRowClass(player: Player) {
       <div class="flex justify-between items-center">
         <h3 class="text-sm md:text-lg font-semibold">{{ title }}</h3>
         <UDropdownMenu
-          :items="
-            table?.tableApi
-              ?.getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => ({
-                label: upperFirst(column.id),
-                type: 'checkbox' as const,
-                checked: column.getIsVisible(),
-                onUpdateChecked(checked: boolean) {
-                  table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
-                },
-                onSelect(e?: Event) {
-                  e?.preventDefault()
-                }
-              }))
-          "
+          :items="columnToggleItems"
           :content="{ align: 'end' }"
         >
           <UButton

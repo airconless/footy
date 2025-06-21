@@ -85,25 +85,25 @@ export const useRealTimeData = () => {
     fetchData().then(() => {
       startPolling()
     })
+    
+    // Pause polling when page is hidden, resume when visible
+    if (process.client) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          stopPolling()
+        } else {
+          startPolling()
+          // Immediate check when tab becomes visible
+          checkForUpdates()
+        }
+      })
+    }
   })
 
   // Clean up on unmount
   onBeforeUnmount(() => {
     stopPolling()
   })
-
-  // Pause polling when page is hidden, resume when visible
-  if (process.client) {
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopPolling()
-      } else {
-        startPolling()
-        // Immediate check when tab becomes visible
-        checkForUpdates()
-      }
-    })
-  }
 
   return {
     gameData: readonly(gameData),

@@ -19,6 +19,7 @@ type Player = {
   eTOG: number
   eTOGPercentage: number
   currentBench: string
+  benchTime?: string
   aflFantasyPrice: number
   aflFantasyTotalPriceChange: number
   aflFantasyEstimatedPriceChange: number
@@ -46,6 +47,19 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// Map iconImage to emojis
+const getStatusEmoji = (iconImage: string) => {
+  switch (iconImage) {
+    case 'redvest.png': return '🦺'
+    case 'bandaid.png': return '🤕'
+    case 'greenvest.png': return '🟢'
+    case 'redcross.png': return '🚨'
+    case 'padlock.png': return '🗜️'
+    case 'tag.png': return '🔖'
+    default: return null
+  }
+}
 </script>
 
 <template>
@@ -105,6 +119,20 @@ const props = defineProps<Props>()
           <div class="flex justify-between">
             <span class="text-gray-600">TOG%:</span>
             <span class="font-medium">{{ player.tOGPercentage }}%</span>
+          </div>
+          <div class="flex justify-between" v-if="player.currentBench === 'Y' || getStatusEmoji(player.iconImage)">
+            <span class="text-gray-600">Status:</span>
+            <span class="font-medium flex items-center gap-1">
+              <!-- Status emoji if present -->
+              <span v-if="getStatusEmoji(player.iconImage)">{{ getStatusEmoji(player.iconImage) }}</span>
+              <!-- Bench info if on bench -->
+              <template v-if="player.currentBench === 'Y'">
+                <span>🪑</span>
+                <span class="text-orange-600 dark:text-orange-400 font-mono text-xs">
+                  {{ player.benchTime || 'On Bench' }}
+                </span>
+              </template>
+            </span>
           </div>
         </div>
       </div>

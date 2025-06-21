@@ -41,6 +41,7 @@ interface Player {
   eTOG: number;
   eTOGPercentage: number;
   currentBench: string;
+  benchTime?: string;
   aflFantasyPrice: number;
   aflFantasyTotalPriceChange: number;
   aflFantasyEstimatedPriceChange: number;
@@ -57,10 +58,23 @@ interface Team {
   players: Player[];
 }
 
+interface BenchPlayer {
+  aflPlayerId: string;
+  jumper: string;
+  player: string;
+  time: string;
+}
+
+interface Benches {
+  home: BenchPlayer[];
+  away: BenchPlayer[];
+}
+
 interface AFLData {
   gameDetails: GameDetails;
   home: Team;
   away: Team;
+  benches: Benches;
 }
 
 // Helper function to add delay
@@ -310,7 +324,15 @@ async function processGame(game: any, kv: any) {
   console.log(`Fetching AFL data for game ${game.id} (apiID: ${apiID})...`);
   const data: AFLData = await fetchWithRetry(`https://new.dtlive.com.au/storage/games/${apiID}.json`);
 
-  const { gameDetails, home, away } = data;
+  const { gameDetails, home, away, benches } = data;
+
+  // Create a map of player IDs to bench times
+  const benchTimeMap: Record<string, string> = {};
+  if (benches) {
+    [...(benches.home || []), ...(benches.away || [])].forEach(benchPlayer => {
+      benchTimeMap[benchPlayer.aflPlayerId] = benchPlayer.time;
+    });
+  }
 
   // Save game details with apiID as key
   const gameKey = `game:${apiID}`;
@@ -324,7 +346,8 @@ async function processGame(game: any, kv: any) {
       team: 'home',
       teamName: gameDetails.homeTeamName,
       teamShort: gameDetails.homeTeamShort,
-      gameApiID: apiID
+      gameApiID: apiID,
+      benchTime: benchTimeMap[player.playerId] || null
     };
     await kv.put(playerKey, JSON.stringify(playerWithTeam), { expirationTtl: 3600 * 24 });
   }
@@ -337,7 +360,8 @@ async function processGame(game: any, kv: any) {
       team: 'away',
       teamName: gameDetails.awayTeamName,
       teamShort: gameDetails.awayTeamShort,
-      gameApiID: apiID
+      gameApiID: apiID,
+      benchTime: benchTimeMap[player.playerId] || null
     };
     await kv.put(playerKey, JSON.stringify(playerWithTeam), { expirationTtl: 3600 * 24 });
   }

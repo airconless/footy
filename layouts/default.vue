@@ -258,27 +258,32 @@ const navigateToRound = (roundValue: string) => {
 
 // Initialize dark mode from localStorage or system preference
 onMounted(() => {
-  const stored = localStorage.getItem('darkMode')
-  if (stored) {
-    isDark.value = stored === 'true'
-  } else {
-    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
-  }
-  
-  // Apply dark class to html element for Tailwind
-  if (isDark.value) {
-    document.documentElement.classList.add('dark')
+  if (process.client) {
+    const stored = localStorage.getItem('darkMode')
+    if (stored) {
+      isDark.value = stored === 'true'
+    } else {
+      isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+    }
+    
+    // Apply dark class to html element for Tailwind
+    if (isDark.value) {
+      document.documentElement.classList.add('dark')
+    }
   }
 })
 
 const toggleDarkMode = () => {
   isDark.value = !isDark.value
-  localStorage.setItem('darkMode', isDark.value.toString())
   
-  if (isDark.value) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
+  if (process.client) {
+    localStorage.setItem('darkMode', isDark.value.toString())
+    
+    if (isDark.value) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
   }
 }
 
@@ -292,18 +297,20 @@ const closeMobileMenu = () => {
 
 // Close mobile menu when clicking outside
 onMounted(() => {
-  const handleClickOutside = (event: Event) => {
-    const target = event.target as Element
-    if (!target.closest('header') && showMobileMenu.value) {
-      showMobileMenu.value = false
+  if (process.client) {
+    const handleClickOutside = (event: Event) => {
+      const target = event.target as Element
+      if (!target.closest('header') && showMobileMenu.value) {
+        showMobileMenu.value = false
+      }
     }
+    
+    document.addEventListener('click', handleClickOutside)
+    
+    onUnmounted(() => {
+      document.removeEventListener('click', handleClickOutside)
+    })
   }
-  
-  document.addEventListener('click', handleClickOutside)
-  
-  onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside)
-  })
 })
 </script>
 

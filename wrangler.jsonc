@@ -29,13 +29,7 @@
       "database_id": "7c215416-ad77-4ede-a978-500d7c27cff8",
 	  "migrations_dir": "db/drizzle-out"
     }
-  ],
-	"triggers": {
-		"crons": [
-			"*/2 * * * *"
-		]
-	}
-
+  ]
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
