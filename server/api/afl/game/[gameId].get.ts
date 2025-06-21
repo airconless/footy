@@ -50,6 +50,7 @@ export default defineEventHandler(async (event) => {
       success: true,
       game: {
         id: game.id,
+        apiID: game.apiID,
         homeTeam: game.hteam,
         awayTeam: game.ateam,
         homeScore: game.hscore,

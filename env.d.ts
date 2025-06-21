@@ -10,6 +10,7 @@ declare global {
 
 interface Env {
   footykv: KVNamespace;
+  DB: D1Database;
 }
 
 declare module "h3" {

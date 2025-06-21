@@ -192,15 +192,26 @@
                 Live Updates Active - Last updated: {{ lastUpdated.toLocaleTimeString() }}
               </span>
             </div>
-            <UButton 
-              @click="refreshPlayers()" 
-              :loading="playersPending"
-              color="primary" 
-              variant="outline"
-              size="sm"
-            >
-              Refresh Now
-            </UButton>
+            <div class="flex gap-2">
+              <UButton 
+                @click="refreshPlayers()" 
+                :loading="playersPending"
+                color="primary" 
+                variant="outline"
+                size="sm"
+              >
+                Refresh Now
+              </UButton>
+              <UButton 
+                @click="updateCache()" 
+                :loading="cacheUpdating"
+                color="success" 
+                variant="outline"
+                size="sm"
+              >
+                Update Cache
+              </UButton>
+            </div>
           </div>
         </div>
 
@@ -263,6 +274,7 @@
   <script setup lang="ts">
 interface Game {
   id: number;
+  apiID: number;
   homeTeam: string;
   awayTeam: string;
   homeScore: number;
@@ -344,20 +356,41 @@ const { data: gameData, pending, error } = await useFetch<GameData>(`/api/afl/ga
   default: () => ({ success: false, game: null } as GameData)
 });
 
-// Fetch player data from KV store (same as index.vue)
+// Fetch player data from KV store for this specific game
 const { data: playerGameData, pending: playersPending, error: playersError, refresh: refreshPlayers } = await useFetch<PlayerGameData>('/api/afl/game', {
   server: false,
+  query: { gameId },
   default: () => ({ gameDetails: null, home: { players: [] }, away: { players: [] } } as PlayerGameData)
 });
 
 // Enhanced update checking using last update timestamp (from index.vue)
 const isConnected = ref(true)
 const lastUpdated = ref(new Date())
+const cacheUpdating = ref(false)
 let lastUpdateTime = '0'
+
+const updateCache = async () => {
+  try {
+    cacheUpdating.value = true
+    await $fetch('/api/afl/update-cache', {
+      method: 'POST',
+      body: { gameId }
+    })
+    // Refresh players after cache update
+    await refreshPlayers()
+    lastUpdated.value = new Date()
+  } catch (err) {
+    console.error('Error updating cache:', err)
+  } finally {
+    cacheUpdating.value = false
+  }
+}
 
 const checkForUpdates = async () => {
   try {
-    const response = await $fetch<{ lastUpdateTime: string }>('/api/afl/last-update')
+    const response = await $fetch<{ lastUpdateTime: string }>('/api/afl/last-update', {
+      query: { gameId }
+    })
     const serverUpdateTime = response.lastUpdateTime
     
     // If server data is newer than our last known update, refresh immediately

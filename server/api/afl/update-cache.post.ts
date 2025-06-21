@@ -1,4 +1,7 @@
 import type { H3Event } from 'h3';
+import { drizzle } from 'drizzle-orm/d1';
+import { eq, and, gte, lte } from 'drizzle-orm';
+import { games } from '~/db/schema';
 
 interface GameDetails {
   locationName: string;
@@ -176,66 +179,179 @@ export default defineEventHandler(async (event) => {
     throw new Error("KV store 'footykv' is not available.");
   }
 
+  if (!event.context.cloudflare?.env?.DB) {
+    throw new Error("Database binding 'DB' is not available.");
+  }
+
+  const db = drizzle(event.context.cloudflare.env.DB as any);
+
   try {
-    // Check if we've made a request recently to avoid overwhelming the API
-    const lastRequestKey = 'last_api_request';
-    const lastRequest = await kv.get(lastRequestKey);
-    
-    if (lastRequest) {
-      const lastRequestTime = parseInt(lastRequest);
-      const timeSinceLastRequest = Date.now() - lastRequestTime;
-      const minInterval = 30000; // 30 seconds minimum between requests
-      
-      if (timeSinceLastRequest < minInterval) {
-        const waitTime = minInterval - timeSinceLastRequest;
-        throw new Error(`Rate limit: Please wait ${Math.ceil(waitTime / 1000)} seconds before making another request`);
+    // Get gameId from query parameters or body
+    const query = getQuery(event);
+    const body = await readBody(event).catch(() => ({}));
+    const gameId = query.gameId || body.gameId;
+    const batchMode = query.batch === 'true' || body.batch === true;
+
+    // If no gameId and batch mode, find games currently happening
+    if (!gameId && batchMode) {
+      const currentUnixTime = Math.floor(Date.now() / 1000);
+      // Find games where current time is within [game_start - 1min, game_start + 200min]
+      // This means: game_start >= current_time - 200min AND game_start <= current_time + 1min
+      const earliestGameStart = currentUnixTime - (200 * 60); // Games that started up to 200 minutes ago
+      const latestGameStart = currentUnixTime + 60; // Games starting up to 1 minute from now
+
+      console.log(`Batch mode: Looking for games between ${earliestGameStart} and ${latestGameStart} (current: ${currentUnixTime})`);
+
+      // Find games within the time window
+      const activeGames = await db
+        .select()
+        .from(games)
+        .where(and(
+          gte(games.unixtime, earliestGameStart),
+          lte(games.unixtime, latestGameStart)
+        ));
+
+      console.log(`Found ${activeGames.length} games in the active time window`);
+
+      if (activeGames.length === 0) {
+        return {
+          success: true,
+          message: 'No games currently happening',
+          gamesProcessed: 0,
+          timeWindow: { start: earliestGameStart, end: latestGameStart, current: currentUnixTime }
+        };
       }
-    }
 
-    // Update last request time
-    await kv.put(lastRequestKey, Date.now().toString(), { expirationTtl: 3600 });
+      const results = [];
+      const errors = [];
 
-    console.log('Fetching AFL data...');
-    const data: AFLData = await fetchWithRetry('https://new.dtlive.com.au/storage/games/3222.json');
+      // Process each active game
+      for (const game of activeGames) {
+        try {
+          const result = await processGame(game, kv);
+          results.push(result);
+          
+          // Add delay between requests to avoid overwhelming the API
+          await delay(2000); // 2 second delay between games
+        } catch (error: any) {
+          console.error(`Error processing game ${game.id}:`, error.message);
+          errors.push({
+            gameId: game.id,
+            apiID: game.apiID,
+            error: error.message
+          });
+        }
+      }
 
-    const { gameDetails, home, away } = data;
-
-    // Save game details
-    const gameKey = `game:${gameDetails.year}:${gameDetails.round}:${gameDetails.homeTeamShort}:${gameDetails.awayTeamShort}`;
-    await kv.put(gameKey, JSON.stringify(gameDetails));
-
-    // Save home players with team info
-    for (const player of home.players) {
-      const playerKey = `player:${player.playerId}`;
-      const playerWithTeam = {
-        ...player,
-        team: 'home',
-        teamName: gameDetails.homeTeamName,
-        teamShort: gameDetails.homeTeamShort
+      return {
+        success: true,
+        message: `Batch update completed. Processed ${results.length} games successfully, ${errors.length} errors.`,
+        gamesProcessed: results.length,
+        errors: errors,
+        results: results,
+        timeWindow: { start: earliestGameStart, end: latestGameStart, current: currentUnixTime }
       };
-      await kv.put(playerKey, JSON.stringify(playerWithTeam));
     }
 
-    // Save away players with team info
-    for (const player of away.players) {
-      const playerKey = `player:${player.playerId}`;
-      const playerWithTeam = {
-        ...player,
-        team: 'away',
-        teamName: gameDetails.awayTeamName,
-        teamShort: gameDetails.awayTeamShort
-      };
-      await kv.put(playerKey, JSON.stringify(playerWithTeam));
+    // Original single game processing
+    if (!gameId) {
+      throw new Error('gameId parameter is required when not in batch mode');
     }
 
-    // Update the last update timestamp for cache invalidation
-    await kv.put('last_update_time', Date.now().toString());
+    const gameIdNum = parseInt(gameId as string);
+    if (isNaN(gameIdNum)) {
+      throw new Error('Invalid gameId format');
+    }
+
+    // Fetch the game from database to get its apiID
+    const gameResult = await db
+      .select()
+      .from(games)
+      .where(eq(games.id, gameIdNum))
+      .limit(1);
+
+    if (gameResult.length === 0) {
+      throw new Error(`Game with ID ${gameId} not found in database`);
+    }
+
+    const game = gameResult[0];
+    const result = await processGame(game, kv);
     
-    console.log('Cache updated successfully');
-    return { success: true, message: 'Cache updated successfully.' };
+    return result;
   } catch (error: any) {
     console.error('Error updating cache:', error);
     setResponseStatus(event, 500);
     return { success: false, message: 'Failed to update cache.', error: error.message };
   }
-}); 
+});
+
+// Extract game processing logic into a separate function
+async function processGame(game: any, kv: any) {
+  const apiID = game.apiID;
+
+  // Check if we've made a request recently for this specific game to avoid overwhelming the API
+  const lastRequestKey = `last_api_request:${apiID}`;
+  const lastRequest = await kv.get(lastRequestKey);
+  
+  if (lastRequest) {
+    const lastRequestTime = parseInt(lastRequest);
+    const timeSinceLastRequest = Date.now() - lastRequestTime;
+    const minInterval = 30000; // 30 seconds minimum between requests
+    
+    if (timeSinceLastRequest < minInterval) {
+      const waitTime = minInterval - timeSinceLastRequest;
+      throw new Error(`Rate limit: Please wait ${Math.ceil(waitTime / 1000)} seconds before making another request for game ${game.id}`);
+    }
+  }
+
+  // Update last request time for this specific game
+  await kv.put(lastRequestKey, Date.now().toString(), { expirationTtl: 3600 });
+
+  console.log(`Fetching AFL data for game ${game.id} (apiID: ${apiID})...`);
+  const data: AFLData = await fetchWithRetry(`https://new.dtlive.com.au/storage/games/${apiID}.json`);
+
+  const { gameDetails, home, away } = data;
+
+  // Save game details with apiID as key
+  const gameKey = `game:${apiID}`;
+  await kv.put(gameKey, JSON.stringify(gameDetails), { expirationTtl: 3600 * 24 }); // 24 hour expiry
+
+  // Save home players with team info and apiID association
+  for (const player of home.players) {
+    const playerKey = `player:${apiID}:${player.playerId}`;
+    const playerWithTeam = {
+      ...player,
+      team: 'home',
+      teamName: gameDetails.homeTeamName,
+      teamShort: gameDetails.homeTeamShort,
+      gameApiID: apiID
+    };
+    await kv.put(playerKey, JSON.stringify(playerWithTeam), { expirationTtl: 3600 * 24 });
+  }
+
+  // Save away players with team info and apiID association
+  for (const player of away.players) {
+    const playerKey = `player:${apiID}:${player.playerId}`;
+    const playerWithTeam = {
+      ...player,
+      team: 'away',
+      teamName: gameDetails.awayTeamName,
+      teamShort: gameDetails.awayTeamShort,
+      gameApiID: apiID
+    };
+    await kv.put(playerKey, JSON.stringify(playerWithTeam), { expirationTtl: 3600 * 24 });
+  }
+
+  // Update the last update timestamp for this specific game
+  await kv.put(`last_update_time:${apiID}`, Date.now().toString(), { expirationTtl: 3600 * 24 });
+  
+  console.log(`Cache updated successfully for game ${game.id} (apiID: ${apiID})`);
+  return { 
+    success: true, 
+    message: `Cache updated successfully for game ${game.id}.`,
+    gameId: game.id,
+    apiID: apiID,
+    homeTeam: gameDetails.homeTeamName,
+    awayTeam: gameDetails.awayTeamName
+  };
+} 
