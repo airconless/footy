@@ -6,7 +6,7 @@
 		"build": "nuxt build",
 		"dev": "nuxt dev",
 		"generate": "nuxt generate",
-		"preview": "npm run build && wrangler dev --remote",
+		"preview": "npm run build && wrangler dev --local --log-level debug",
 		"postinstall": "nuxt prepare",
 		"deploy": "npm run build && wrangler deploy",
 		"cf-typegen": "wrangler types"
